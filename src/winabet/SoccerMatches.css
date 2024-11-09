@@ -1,0 +1,133 @@
+/* src/pages/SoccerMatches.css */
+.soccer-matches-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .user-balance {
+    background-color: #2c3e50;
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 1.2em;
+  }
+  
+  .matches-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .match-card {
+    background-color: white;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .match-card.live {
+    border-left: 4px solid #e74c3c;
+  }
+  
+  .match-card.upcoming {
+    border-left: 4px solid #3498db;
+  }
+  
+  .match-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  
+  .match-status {
+    color: #e74c3c;
+    font-weight: bold;
+  }
+  
+  .match-time {
+    color: #7f8c8d;
+  }
+  
+  .match-teams {
+    margin: 15px 0;
+  }
+  
+  .team {
+    display: flex;
+    justify-content: space-between;
+    margin: 5px 0;
+  }
+  
+  .team-name {
+    font-weight: bold;
+  }
+  
+  .betting-options {
+    margin-top: 15px;
+  }
+  
+  .bet-buttons {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .bet-button {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .bet-button:hover {
+    background-color: #f7f9fc;
+  }
+  
+  .bet-button.selected {
+    background-color: #2ecc71;
+    color: white;
+    border-color: #27ae60;
+  }
+  
+  .bet-placement {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  
+  .bet-placement input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .place-bet-button {
+    padding: 8px 15px;
+    background-color: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .place-bet-button:hover {
+    background-color: #27ae60;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 600px) {
+    .bet-buttons {
+      flex-direction: column;
+    }
+    
+    .bet-placement {
+      flex-direction: column;
+    }
+  }

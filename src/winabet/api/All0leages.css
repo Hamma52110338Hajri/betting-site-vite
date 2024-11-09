@@ -1,0 +1,220 @@
+/* Overall container styling */
+.betting-container {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+    background-color: #f8f9fa;
+  }
+  
+  /* Main content styling */
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  /* Header section styling */
+  .header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #333;
+    border-radius: 8px;
+    color: white;
+  }
+  
+  /* User balance styling */
+  .user-balance {
+    font-size: 1.4em;
+    font-weight: bold;
+  }
+  
+  /* Odds format selector styling */
+  .odds-format-selector {
+    display: flex;
+    gap: 15px;
+  }
+  
+  .odds-format-selector label {
+    color: #f8f9fa;
+    cursor: pointer;
+  }
+  
+  /* Sports list styling */
+  .sports-list {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  
+  .sports-list button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    background-color: #555;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .sports-list button:hover {
+    background-color: #444;
+  }
+  
+  .sports-list button.active {
+    background-color: #2196f3;
+  }
+  
+  /* Content wrapper styling */
+  .content-wrapper {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+  }
+  
+  /* Matches list styling */
+  .matches-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .matches-list h3 {
+    font-size: 1.8em;
+    margin-bottom: 10px;
+  }
+  
+  /* Match card styling */
+  .match-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+  }
+  
+  .match-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  /* Match header styling */
+  .match-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+  }
+  
+  .match-header .match-status {
+    font-size: 1.2em;
+    font-weight: bold;
+  }
+  
+  .match-header .match-time {
+    color: #777;
+  }
+  
+  /* Match teams styling */
+  .match-teams {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+  }
+  
+  .match-teams .team-name {
+    font-size: 1.2em;
+  }
+  
+  /* Betting options styling */
+  .betting-options {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  
+  .bet-button {
+    padding: 10px 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: white;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  
+  .bet-button.selected {
+    background-color: #2196f3;
+    color: white;
+  }
+  
+  /* Bet slip styling */
+  .bet-slip {
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 20px;
+  }
+  
+  .bet-slip-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .bet-info {
+    flex: 1;
+  }
+  
+  .remove-bet {
+    background: none;
+    border: none;
+    color: #ff4444;
+    font-size: 1.4em;
+    cursor: pointer;
+  }
+  
+  /* Bet slip footer styling */
+  .bet-slip-footer {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+  }
+  
+  .bet-slip-footer input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  
+  .place-bet-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-size: 1.2em;
+  }
+  
+  .place-bet-button:hover {
+    background-color: #45a049;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .content-wrapper {
+      grid-template-columns: 1fr;
+    }
+  
+    .bet-slip {
+      position: static;
+    }
+  }
