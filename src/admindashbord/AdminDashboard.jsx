@@ -5,6 +5,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [newUser, setNewUser] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [promoIndex, setPromoIndex] = useState(0);
 
   const addUser = () => {
     if (!newUser) {
@@ -36,7 +37,7 @@ const AdminDashboard = () => {
       return;
     }
 
-    const updatedUsers = users.map(user => 
+    const updatedUsers = users.map(user =>
       user.id === userId ? { ...user, balance: user.balance + amount, amountToSend: 0 } : user
     );
 
@@ -62,9 +63,17 @@ const AdminDashboard = () => {
     setUsers(users.filter(user => user.id !== userId));
   };
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const previousPromo = () => {
+    setPromoIndex((prev) => (prev - 1 + users.length) % users.length);
+  };
+
+  const nextPromo = () => {
+    setPromoIndex((prev) => (prev + 1) % users.length);
+  };
 
   return (
     <div className="admin-dashboard">
@@ -89,6 +98,15 @@ const AdminDashboard = () => {
         <button onClick={addUser}>Add User</button>
       </div>
 
+      <div className="slider">
+        <div onClick={previousPromo} className="slider__arrow slider__arrow--left">
+          <i className="fa-solid fa-angle-left"></i>
+        </div>
+        <div onClick={nextPromo} className="slider__arrow slider__arrow--right">
+          <i className="fa-solid fa-angle-right"></i>
+        </div>
+      </div>
+
       <div className="users-list">
         <h2>Users</h2>
         <table>
@@ -111,7 +129,7 @@ const AdminDashboard = () => {
                         type="number"
                         value={user.amountToSend || ''}
                         onChange={(e) =>
-                          setUsers(users.map(u => 
+                          setUsers(users.map(u =>
                             u.id === user.id ? { ...u, amountToSend: parseFloat(e.target.value) || 0 } : u
                           ))
                         }
@@ -126,7 +144,7 @@ const AdminDashboard = () => {
                         type="number"
                         value={user.amountToWithdraw || ''}
                         onChange={(e) =>
-                          setUsers(users.map(u => 
+                          setUsers(users.map(u =>
                             u.id === user.id ? { ...u, amountToWithdraw: parseFloat(e.target.value) || 0 } : u
                           ))
                         }
@@ -136,8 +154,8 @@ const AdminDashboard = () => {
                       <button onClick={() => handleWithdrawMoney(user.id, user.amountToWithdraw)}>Withdraw</button>
                     </div>
 
-                    <button 
-                      onClick={() => removeUser(user.id)} 
+                    <button
+                      onClick={() => removeUser(user.id)}
                       className="remove-btn"
                     >
                       Remove

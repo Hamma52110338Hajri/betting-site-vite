@@ -1,268 +1,379 @@
-// App.jsx
-import React, { useState, useEffect } from "react";
-import './All0leages.css'
+import React, { useEffect, useState, useMemo } from "react";
+import PropTypes from "prop-types";
+import { Locale, MarketType, getMarket, getSportsName } from "@cloudbet/market-helper";
+import {
+  Button, Collapse, Container, Grid, IconButton, MenuItem, Paper, Select, Skeleton, Typography
+} from '@mui/material';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { motion } from 'framer-motion';
+const API_KEY = import.meta.env.VITE_API_KEY;
+const sports = ["soccer", "basketball", "american-football", "baseball", "golf", "tennis"];
+const sportMarkets = {
+  "soccer": [MarketType.soccer_match_odds],
+  "basketball": [MarketType.basketball_moneyline],
+  "american-football": [MarketType.american_football_quarter_1x2],
+  "baseball": [MarketType.baseball_moneyline],
+  "golf": [MarketType.golf_winner],
+  "tennis": [MarketType.tennis_winner]
+};
 
+const fetchData = async (url) => {
+  const response = await fetch(url, {
+    headers: { "X-Api-Key": API_KEY, "cache-control": "max-age=600" }
+  });
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+  return response.json();
+};
 
+const BetButton = ({ label, odds, onPlaceBet }) => (
+  <Button
+    variant="outlined"
+    fullWidth
+    onClick={onPlaceBet}
+    sx={{
+      height: '80px',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#1687',
+      border: '1px solid #333',
+      boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)',
+      fontFamily: '"Helvetica Neue", Arial, sans-serif',
+      color: '#008540',
+      cursor: 'pointer',
+    }}
+  >
+    <Typography variant="caption" style={{ color: '#ff1'  }}>{label}</Typography>
+    <Typography variant="body2" style={{ color: '#ff1' }}>{odds}</Typography>
+  </Button>
+);
 
-// BetSlip Component
-const BetSlip = ({ selectedBets, betAmount, setBetAmount, userBalance, setUserBalance, removeFromBetSlip }) => {
-  const calculateTotalOdds = () => {
-    return selectedBets.reduce((total, bet) => total * bet.odds, 1);
-  };
+BetButton.propTypes = {
+  label: PropTypes.string.isRequired,
+  odds: PropTypes.number.isRequired,
+  onPlaceBet: PropTypes.func.isRequired
+};
 
-  const calculatePotentialWinnings = () => {
-    return betAmount * calculateTotalOdds();
-  };
-
-  const placeCombinationBet = () => {
-    if (betAmount > userBalance) {
-      alert("Insufficient balance.");
-      return;
-    }
-    
-    const totalOdds = calculateTotalOdds();
-    const potentialWinnings = calculatePotentialWinnings();
-    
-    setUserBalance(prevBalance => prevBalance - betAmount);
-    alert(`Combination bet placed!\nTotal Odds: ${totalOdds.toFixed(2)}\nPotential Winnings: $${potentialWinnings.toFixed(2)}`);
-    setBetAmount("");
-  };
+const Country = ({ category, sportKey, onPlaceBet, onSelectMatch }) => {
+  const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bet-slip">
-      <h3>Bet Slip</h3>
-      {selectedBets.map((bet, index) => (
-        <div key={index} className="bet-slip-item">
-          <div className="bet-info">
-            <p>{bet.matchName}</p>
-            <p>Selection: {bet.type}</p>
-            <p>Odds: {bet.odds}</p>
-          </div>
-          <button onClick={() => removeFromBetSlip(bet.id)} className="remove-bet">
-            ×
-          </button>
-        </div>
-      ))}
-      
-      {selectedBets.length > 0 && (
-        <div className="bet-slip-footer">
-          <p>Total Odds: {calculateTotalOdds().toFixed(2)}</p>
-          <input
-            type="number"
-            value={betAmount}
-            onChange={(e) => setBetAmount(Number(e.target.value))}
-            placeholder="Enter bet amount"
-            min="0"
-          />
-          <p>Potential Winnings: ${calculatePotentialWinnings().toFixed(2)}</p>
-          <button onClick={placeCombinationBet} className="place-bet-button">
-            Place Combination Bet
-          </button>
-        </div>
-      )}
-    </div>
+    <Grid item xs={12}>
+      <Typography variant="h6" onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer', fontFamily: '"Helvetica Neue", Arial, sans-serif', color: '#5cc500' }} >
+        {category.name} {expanded ? <ExpandLessIcon style={{ color: '#156755' }} /> : <ExpandMoreIcon style={{ color: '#ff4125' }} />}
+      </Typography>
+      <Collapse in={expanded} timeout="auto" unmountOnExit>
+        <Grid container spacing={2}>
+          {category.competitions.map((comp) => (
+            <Competition key={comp.key} competition={comp} sportKey={sportKey} onPlaceBet={onPlaceBet} onSelectMatch={onSelectMatch} />
+          ))}
+        </Grid>
+      </Collapse>
+    </Grid>
   );
 };
 
-// Main SoccerMatches Component
-const SoccerMatches = () => {
-  const [sports, setSports] = useState([]);
-  const [matches, setMatches] = useState([]);
-  const [selectedSport, setSelectedSport] = useState(null);
-  const [userBalance, setUserBalance] = useState(100.0);
-  const [selectedBets, setSelectedBets] = useState([]);
-  const [betAmount, setBetAmount] = useState("");
-  const [oddsFormat, setOddsFormat] = useState("decimal");
+Country.propTypes = {
+  category: PropTypes.shape({
+    name: PropTypes.string.isRequired,
+    competitions: PropTypes.array.isRequired
+  }).isRequired,
+  sportKey: PropTypes.string.isRequired,
+  onPlaceBet: PropTypes.func.isRequired,
+  onSelectMatch: PropTypes.func.isRequired
+};
+
+const Competition = ({ competition, sportKey, onPlaceBet, onSelectMatch }) => {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const loadEvents = async () => {
+    setExpanded(!expanded);
+    if (events.length || loading) return;
+    setLoading(true);
+    try {
+      const data = await fetchData(`https://sports-api.cloudbet.com/pub/v2/odds/competitions/${competition.key}`);
+      setEvents(data.events || []);
+      console.log(data.events);
+      
+    } catch (error) {
+      console.error("Error loading events:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Grid item xs={12} style={{ cursor: 'pointer' }}  >
+      <div style={{ display: 'flex', alignItems: 'center' }} onClick={loadEvents}>
+        <Typography variant="subtitle1" style={{ flexGrow: 1, fontFamily: '"Helvetica Neue", Arial, sans-serif', color: '#ff4' }}>{competition.name}</Typography>
+        <IconButton>
+          {expanded ? <ExpandLessIcon style={{ color: '#ff4' }} /> : <ExpandMoreIcon style={{ color: '#fff' }} />}
+        </IconButton>
+      </div>
+      <Collapse in={expanded} timeout="auto" unmountOnExit>
+        <Grid container spacing={2}>
+          {loading ? (
+            <Grid item xs={12} style={{ cursor: 'pointer' }} ><Skeleton variant="rectangular" height={20} style={{ cursor: 'pointer' }} /></Grid>
+          ) : events.length > 0 ? (
+            events.map((event) => (
+              <Event
+                key={event.id}
+                event={event}
+                sportKey={sportKey}
+                onPlaceBet={onPlaceBet}
+                onSelectMatch={onSelectMatch}
+                cutoffTime={event.cutoffTime}
+              />
+            ))
+          ) : (
+            <Grid item xs={12}><Typography variant="body2" style={{ fontFamily: '"Helvetica Neue", Arial, sans-serif', color: '#fff' }}>No events available</Typography></Grid>
+          )}
+        </Grid>
+      </Collapse>
+    </Grid>
+  );
+};
+
+Competition.propTypes = {
+  competition: PropTypes.shape({
+    key: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired
+  }).isRequired,
+  sportKey: PropTypes.string.isRequired,
+  onPlaceBet: PropTypes.func.isRequired,
+  onSelectMatch: PropTypes.func.isRequired
+};
+
+const Event = ({ event, sportKey, onPlaceBet, cutoffTime, onSelectMatch }) => {
+  const isLive = event.status === "TRADING_LIVE";
+
+  const eventMarkets = useMemo(() => {
+    const [markets] = getMarket(event, sportMarkets[sportKey][0]);
+    return markets || [];
+  }, [event, sportKey]);
+
+  if (!eventMarkets.length) return null;
+
+  const getTeamNames = () => {
+    const homeTeam = event.home?.name || "Home";
+    const awayTeam = event.away?.name || "Away";
+    return [homeTeam, awayTeam];
+  };
+
+  const [homeTeam, awayTeam] = getTeamNames();
+
+  const getBetLabelsAndSelections = (index) => {
+    switch (sportKey) {
+      case 'soccer':
+        return {
+          label: index === 0 ? "1" : index === 1 ? "X" : "2",
+          selection: index === 0 ? homeTeam : index === 1 ? "Draw" : awayTeam
+        };
+      case 'basketball':
+      case 'tennis':
+      case 'baseball':
+        return {
+          label: index === 0 ? "1" : "2",
+          selection: index === 0 ? homeTeam : awayTeam
+        };
+      case 'golf':
+        return {
+          label: "Winner",
+          selection: homeTeam
+        };
+      default:
+        return {
+          label: "Selection",
+          selection: homeTeam
+        };
+    }
+  };
+
+  return (
+    <Grid item xs={12}>
+      <Paper
+        component={motion.div}
+        whileHover={{ scale: 1.05 }}
+        transition={{ duration: 0.3 }}
+        style={{
+          padding: '16px',
+          marginBottom: '16px',
+          position: 'relative',
+          borderRadius: '10px',
+          boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)',
+          backgroundColor: '#1e1e1e',
+          color: '#fff',
+        }}
+      >
+        {isLive && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+              backgroundColor: 'red',
+              color: 'white',
+              padding: '5px 10px',
+              borderRadius: '5px',
+              fontSize: '1em',
+              zIndex: 1,
+            }}
+          >
+            LIVE
+          </div>
+        )}
+        <Grid container direction="column" spacing={4}>
+          <Grid item>
+            <Typography variant="body2" style={{ color: '#fff' }}>
+              Date: {new Date(cutoffTime).toLocaleString()}
+            </Typography>
+            <Typography variant="subtitle2" style={{ marginBottom: '16px', color: '#fff' }}>
+              {`${homeTeam} vs ${awayTeam}`}
+            </Typography>
+          </Grid>
+          <Grid item>
+            <Grid container spacing={1}>
+              {eventMarkets.map((market) => (
+                <Grid container spacing={1} key={market.name}>
+                  {market.lines[0].map((outcome, index) => {
+                    const { label, selection } = getBetLabelsAndSelections(index);
+
+                    if (sportKey === 'golf' && index > 0) return null;
+
+                    return (
+                      <Grid item xs={sportKey === 'golf' ? 12 : 4} key={index}>
+                        <BetButton
+                          label={label}
+                          odds={outcome.back.price}
+                          onPlaceBet={() => onPlaceBet({
+                            matchId: event.id,
+                            type: label,
+                            odds: outcome.back.price,
+                            matchName: event.name,
+                            selection: selection
+                          })}
+                        />
+                      </Grid>
+                    );
+                  })}
+                </Grid>
+              ))}
+            </Grid>
+          </Grid>
+          <Grid item>
+            <Button
+              variant="contained"
+              onClick={() => onSelectMatch(event)}
+              style={{
+                backgroundColor: '#4caf50',
+                color: 'white',
+                padding: '5px',
+                borderRadius: '10px',
+                marginTop: '5px',
+                cursor: 'pointer',
+                fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)',
+              }}
+            >
+              More Bets
+            </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+    </Grid>
+  );
+};
+
+Event.propTypes = {
+  event: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    cutoffTime: PropTypes.string.isRequired,
+    status: PropTypes.string.isRequired,
+    home: PropTypes.object,
+    away: PropTypes.object
+  }).isRequired,
+  sportKey: PropTypes.string.isRequired,
+  onPlaceBet: PropTypes.func.isRequired,
+  cutoffTime: PropTypes.string.isRequired,
+  onSelectMatch: PropTypes.func.isRequired
+};
+
+const SportsEvents = ({ onPlaceBet, onSelectMatch }) => {
+  const [selectedSport, setSelectedSport] = useState(sports[0]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchSports = async () => {
+    const fetchCategories = async () => {
+      setLoading(true);
       try {
-        const response = await fetch(
-          `https://api.the-odds-api.com/v4/sports?apiKey=${import.meta.env.VITE_ODDS_API_KEY}`
-        );
-        const data = await response.json();
-        setSports(data || []);
+        const data = await fetchData(`https://sports-api.cloudbet.com/pub/v2/odds/sports/${selectedSport}`);
+        setCategories(data.categories || []);
       } catch (error) {
-        console.error("Failed to fetch sports", error);
+        console.error("Error fetching categories:", error);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchSports();
-  }, []);
-
-  const fetchMatches = async (sportKey) => {
-    setSelectedSport(sportKey);
-    try {
-      const response = await fetch(
-        `https://api.the-odds-api.com/v4/sports/${sportKey}/odds?apiKey=${import.meta.env.VITE_ODDS_API_KEY}&regions=us&markets=h2h&oddsFormat=${oddsFormat}`
-      );
-      const data = await response.json();
-      setMatches(data || []);
-    } catch (error) {
-      console.error("Failed to fetch matches", error);
-    }
-  };
-
-  const addToBetSlip = (match, outcome) => {
-    const betExists = selectedBets.some(bet => 
-      bet.matchId === match.id && bet.type === outcome.name
-    );
-
-    if (!betExists) {
-      const newBet = {
-        id: `${match.id}-${outcome.name}`,
-        matchId: match.id,
-        matchName: `${match.home_team} vs ${match.away_team}`,
-        type: outcome.name === match.home_team ? '1' : 
-              outcome.name === 'Draw' ? 'X' : '2',
-        odds: outcome.price,
-      };
-      setSelectedBets([...selectedBets, newBet]);
-    }
-  };
-
-  const removeFromBetSlip = (betId) => {
-    setSelectedBets(selectedBets.filter(bet => bet.id !== betId));
-  };
+    fetchCategories();
+  }, [selectedSport]);
 
   return (
-    <div className="betting-container">
-      <div className="main-content">
-        <div className="header-section">
-          <div className="user-balance">Balance: ${userBalance.toFixed(2)}</div>
-          <div className="odds-format-selector">
-            <label>
-              <input
-                type="radio"
-                value="decimal"
-                checked={oddsFormat === "decimal"}
-                onChange={() => setOddsFormat("decimal")}
-              />
-              Decimal
-            </label>
-            <label>
-              <input
-                type="radio"
-                value="american"
-                checked={oddsFormat === "american"}
-                onChange={() => setOddsFormat("american")}
-              />
-              American
-            </label>
-          </div>
-        </div>
-
-        <div className="sports-list">
-          {sports.map((sport) => (
-            <button
-              key={sport.key}
-              onClick={() => fetchMatches(sport.key)}
-              className={selectedSport === sport.key ? 'active' : ''}
+    <ThemeProvider theme={createTheme({ palette: { mode: 'dark' } })}>
+      <Container maxWidth="md" sx={{ height: '100vh', overflowY: 'auto', backgroundColor: '#000', padding: '20px', borderRadius: '10px', boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)' }}>
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <Typography variant="h5" style={{ fontFamily: '"Helvetica Neue", Arial, sans-serif', color: '#ff0' }}>Choose a Sport :</Typography>
+            <Select
+              value={selectedSport}
+              onChange={(e) => setSelectedSport(e.target.value)}
+              fullWidth
+              style={{ fontFamily: '"Helvetica Neue", Arial, sans-serif', color: '#fff' }}
+              MenuProps={{
+                PaperProps: {
+                  style: {
+                    backgroundColor: '#1e1e1e',
+                    color: '#fff',
+                  },
+                },
+              }}
             >
-              {sport.title}
-            </button>
-          ))}
-        </div>
-
-        <div className="content-wrapper">
-          <div className="matches-section">
-            {selectedSport && (
-              <div className="matches-list">
-                <h3>Matches for {selectedSport}</h3>
-                {matches.map((match) => (
-                  <div key={match.id} className="match-card">
-                    <div className="match-header">
-                      <span className="match-status">{match.sport_title}</span>
-                      <span className="match-time">
-                        {new Date(match.commence_time).toLocaleString()}
-                      </span>
-                    </div>
-
-                    <div className="match-teams-container">
-                      <div className="match-teams">
-                        <div className="team home">
-                          <span className="team-name">{match.home_team}</span>
-                        </div>
-                        <div className="team-vs">VS</div>
-                        <div className="team away">
-                          <span className="team-name">{match.away_team}</span>
-                        </div>
-                      </div>
-
-                      {match.bookmakers && match.bookmakers[0]?.markets[0]?.outcomes && (
-                        <div className="betting-options">
-                          <button
-                            className={`bet-button ${
-                              selectedBets.some(bet => 
-                                bet.matchId === match.id && bet.type === '1'
-                              ) ? "selected" : ""
-                            }`}
-                            onClick={() => addToBetSlip(match, {
-                              name: match.home_team,
-                              price: match.bookmakers[0].markets[0].outcomes.find(o => o.name === match.home_team)?.price
-                            })}
-                          >
-                            <div className="bet-type">1</div>
-                            <div className="bet-odds">
-                              {match.bookmakers[0].markets[0].outcomes.find(o => o.name === match.home_team)?.price}
-                            </div>
-                          </button>
-
-                          <button
-                            className={`bet-button ${
-                              selectedBets.some(bet => 
-                                bet.matchId === match.id && bet.type === 'X'
-                              ) ? "selected" : ""
-                            }`}
-                            onClick={() => addToBetSlip(match, {
-                              name: 'Draw',
-                              price: match.bookmakers[0].markets[0].outcomes.find(o => o.name === 'Draw')?.price
-                            })}
-                          >
-                            <div className="bet-type">X</div>
-                            <div className="bet-odds">
-                              {match.bookmakers[0].markets[0].outcomes.find(o => o.name === 'Draw')?.price}
-                            </div>
-                          </button>
-
-                          <button
-                            className={`bet-button ${
-                              selectedBets.some(bet => 
-                                bet.matchId === match.id && bet.type === '2'
-                              ) ? "selected" : ""
-                            }`}
-                            onClick={() => addToBetSlip(match, {
-                              name: match.away_team,
-                              price: match.bookmakers[0].markets[0].outcomes.find(o => o.name === match.away_team)?.price
-                            })}
-                          >
-                            <div className="bet-type">2</div>
-                            <div className="bet-odds">
-                              {match.bookmakers[0].markets[0].outcomes.find(o => o.name === match.away_team)?.price}
-                            </div>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="bet-slip-section">
-            <BetSlip
-              selectedBets={selectedBets}
-              betAmount={betAmount}
-              setBetAmount={setBetAmount}
-              userBalance={userBalance}
-              setUserBalance={setUserBalance}
-              removeFromBetSlip={removeFromBetSlip}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+              {sports.map((sport) => (
+                <MenuItem key={sport} value={sport} style={{ fontFamily: '"Helvetica Neue", Arial, sans-serif', color: '#fff' }}>
+                  {getSportsName(sport, Locale.en)}
+                </MenuItem>
+              ))}
+            </Select>
+          </Grid>
+          {loading ? (
+            <Grid item xs={12}><Skeleton variant="rectangular" height={100} style={{ backgroundColor: '#1e1e1e' }} /></Grid>
+          ) : (
+            categories.map((category) => (
+              <Country
+                key={category.key}
+                category={category}
+                sportKey={selectedSport}
+                onPlaceBet={onPlaceBet}
+                onSelectMatch={onSelectMatch}
+              />
+            ))
+          )}
+        </Grid>
+      </Container>
+    </ThemeProvider>
   );
 };
 
-export default SoccerMatches;
+SportsEvents.propTypes = {
+  onPlaceBet: PropTypes.func.isRequired,
+  onSelectMatch: PropTypes.func.isRequired
+  
+};
+
+export default SportsEvents;
