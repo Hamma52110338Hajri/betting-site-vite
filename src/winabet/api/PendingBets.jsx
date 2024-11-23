@@ -56,6 +56,7 @@ const PendingBets = ({ pendingBets, setPendingBets, onCashOut, onSettleBet }) =>
       return null;
     }
   };
+  
 
   const updateBetStatus = async (bet) => {
     const updatedSelections = await Promise.all(
@@ -64,16 +65,16 @@ const PendingBets = ({ pendingBets, setPendingBets, onCashOut, onSettleBet }) =>
         return result ? { ...selection, status: result.status } : selection;
       })
     );
-
+  
     const allWon = updatedSelections.every((sel) => sel.status === 'won');
     const anyLost = updatedSelections.some((sel) => sel.status === 'lost');
-
+  
     const updatedBet = {
       ...bet,
       bets: updatedSelections,
       status: allWon ? 'won' : anyLost ? 'lost' : 'pending',
     };
-
+  
     setPendingBets((prev) =>
       prev.map((b) => (b.id === updatedBet.id ? updatedBet : b))
     );

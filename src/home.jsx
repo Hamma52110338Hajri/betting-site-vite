@@ -246,19 +246,14 @@ const Home = () => {
           sx={{
             '& .MuiDrawer-paper': {
               width: '80%', // Adjust width for mobile
-              maxWidth: 300, // Max width for larger screens
+              maxWidth: 500, // Max width for larger screens
               height: '100%', // Ensure the Drawer takes up the full height
               overflowY: 'auto', // Ensure the content inside the Drawer is scrollable
             },
           }}
         >
           <List>
-            <ListItem button>
-              <ListItemIcon>
-                <AccountBalanceWalletIcon />
-              </ListItemIcon>
-              <ListItemText primary={`Balance: ${userBalance.toFixed(2)} دينار`} />
-            </ListItem>
+           
 
             <ListItem button onClick={toggleSportList}>
               <ListItemIcon>
@@ -277,22 +272,23 @@ const Home = () => {
                  >You are not currently logged in. Please log in to access your account.</h4>
 
               </List>
+              <ListItem button>
+              <ListItemIcon>
+                <AccountBalanceWalletIcon />
+              </ListItemIcon>
+              <ListItemText primary={`Balance: ${userBalance.toFixed(2)} دينار`} />
+            </ListItem>
             </Collapse>
 
             <Divider />
 
-            <ListItem button onClick={() => setSelectedMatch(null)}>
-              <ListItemIcon>
-                <SportsSoccerIcon />
-              </ListItemIcon>
-              <ListItemText primary="Soccer Matches" />
-            </ListItem>
+          
 
             <ListItem button>
               <ListItemIcon>
                 <ReceiptIcon />
               </ListItemIcon>
-              <ListItemText primary="Pending Bets" />
+              <ListItemText primary="histoy Bets" />
             </ListItem>
 
             <ListItem>
@@ -304,6 +300,7 @@ const Home = () => {
                   margin: '16px 0',
                   width: '100%',
                   backgroundColor: darkMode ? '#424242' : '#fff',
+                  height: '100%',
                 }}
               >
                 <PendingBets
